@@ -1,66 +1,94 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { FormData } from "@/types"
+import { MenuItem } from "@/lib/store/menuSlice"
 
-const initialFormData: FormData = {
-  menuId: "56320ee9-6af6-11ed-a7ba-f220afe5e4a9",
-  depth: "3",
-  parentData: "Systems",
-  name: "System Code",
+interface MenuFormProps {
+  selectedMenu: MenuItem | null;
+  parentName?: string;
+  onUpdate: (name: string) => void;
+  onDelete: () => void;
 }
 
-export function MenuForm() {
-  const [formData, setFormData] = useState<FormData>(initialFormData)
+export function MenuForm({ selectedMenu, parentName, onUpdate, onDelete }: MenuFormProps) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const name = formData.get('name') as string;
+    if (name) {
+      onUpdate(name);
+    }
+  };
+
+  if (!selectedMenu) {
+    return (
+      <div className="p-6 bg-gray-50 rounded-2xl">
+        <p className="text-gray-500">Select a menu item to edit</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="menuId" className="text-gray-500">
-          Menu ID
-        </Label>
-        <Input id="menuId" value={formData.menuId} readOnly className="bg-[#F9FAFB] text-gray-900" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="depth" className="text-gray-500">
-          Depth
-        </Label>
-        <Input id="depth" value={formData.depth} readOnly className="bg-[#F9FAFB] text-gray-900" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="parentData" className="text-gray-500">
-          Parent Data
-        </Label>
-        <Input id="parentData" value={formData.parentData} readOnly className="bg-[#F9FAFB] text-gray-900" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="name" className="text-gray-500">
-          Name
-        </Label>
+    <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-gray-50 rounded-2xl">
+      <div>
+        <Label htmlFor="menuId">Menu ID</Label>
         <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              name: e.target.value,
-            }))
-          }
-          className="text-gray-900"
+          id="menuId"
+          name="menuId"
+          value={selectedMenu.id}
+          disabled
+          className="mt-2"
         />
       </div>
-      <Button
-        className="w-full bg-[#253BFF] hover:bg-[#1E2FCC] text-white mt-4"
-        onClick={() => {
-          console.log("Saving:", formData)
-        }}
-      >
-        Save
-      </Button>
-    </div>
-  )
+
+      <div>
+        <Label htmlFor="depth">Depth</Label>
+        <Input
+          id="depth"
+          name="depth"
+          value={selectedMenu.depth}
+          disabled
+          className="mt-2"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="parentData">Parent Menu</Label>
+        <Input
+          id="parentData"
+          name="parentData"
+          value={parentName || "Root"}
+          disabled
+          className="mt-2"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="name">Menu Name</Label>
+        <Input
+          id="name"
+          name="name"
+          defaultValue={selectedMenu.name}
+          className="mt-2"
+        />
+      </div>
+
+      <div className="flex gap-4">
+        <Button type="submit" className="flex-1">
+          Save Changes
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={onDelete}
+          className="flex-1"
+        >
+          Delete
+        </Button>
+      </div>
+    </form>
+  );
 }
 

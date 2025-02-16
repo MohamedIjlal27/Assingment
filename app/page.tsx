@@ -1,176 +1,113 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown, ChevronRight, Grid, LayoutGrid, Menu, Plus, Settings, Users } from "lucide-react"
+import { ChevronDown, ChevronRight, Grid } from "lucide-react"
 import { MenuForm } from "@/components/menus/menu-form"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Sidebar from "@/components/Sidebar"
-
-interface TreeNode {
-  id: string
-  label: string
-  children?: TreeNode[]
-  isExpanded?: boolean
-}
-
-const initialTree: TreeNode[] = [
-  {
-    id: "1",
-    label: "system management",
-    children: [
-      {
-        id: "2",
-        label: "System Management",
-        children: [
-          {
-            id: "3",
-            label: "Systems",
-            children: [],
-          },
-          {
-            id: "4",
-            label: "System Code",
-            children: [
-              {
-                id: "5",
-                label: "Code Registration",
-                children: [],
-              },
-            ],
-          },
-          {
-            id: "6",
-            label: "Code Registration - 2",
-            children: [],
-          },
-          {
-            id: "7",
-            label: "Properties",
-            children: [],
-          },
-          {
-            id: "8",
-            label: "Menus",
-            children: [
-              {
-                id: "9",
-                label: "Menu Registration",
-                children: [],
-              },
-            ],
-          },
-          {
-            id: "10",
-            label: "API List",
-            children: [
-              {
-                id: "11",
-                label: "API Registration",
-                children: [],
-              },
-              {
-                id: "12",
-                label: "API Edit",
-                children: [],
-              },
-            ],
-          },
-          {
-            id: "13",
-            label: "Users & Groups",
-            children: [
-              {
-                id: "14",
-                label: "Users",
-                children: [
-                  {
-                    id: "15",
-                    label: "User Account Registration",
-                    children: [],
-                  },
-                ],
-              },
-              {
-                id: "16",
-                label: "Groups",
-                children: [
-                  {
-                    id: "17",
-                    label: "User Group Registration",
-                    children: [],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "18",
-            label: "사용자 승인",
-            children: [
-              {
-                id: "19",
-                label: "사용자 승인 상세",
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]
+import { useMenu } from "@/lib/hooks/useMenu"
+import { MenuItem } from "@/lib/store/menuSlice"
+import { useDispatch } from "react-redux"
+import { toggleNode, toggleAllNodes } from "@/lib/store/menuSlice"
+import Image from "next/image"
 
 export default function SystemManagement() {
-  const [tree, setTree] = React.useState<TreeNode[]>(initialTree)
-  const [expandAll, setExpandAll] = React.useState(false)
-  const [formData, setFormData] = React.useState({
-    menuId: "56320ee9-6af6-11ed-a7ba-f220afe5e4a9",
-    depth: "3",
-    parentData: "Systems",
-    name: "System Code",
-  })
+  const dispatch = useDispatch();
+  const {
+    items,
+    loading,
+    error,
+    loadMenus,
+    createNewMenu,
+    addNewMenuItem,
+    updateItem,
+    deleteItem,
+  } = useMenu();
+  const [selectedMenu, setSelectedMenu] = React.useState<MenuItem | null>(null);
+  const [selectedRootMenu, setSelectedRootMenu] = React.useState<MenuItem | null>(null);
 
-  const toggleNode = (nodeId: string) => {
-    const toggleNodeRecursive = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map((node) => {
-        if (node.id === nodeId) {
-          return { ...node, isExpanded: !node.isExpanded }
+  React.useEffect(() => {
+    loadMenus();
+  }, []);
+
+  // Filter root menus (depth === 0)
+  const rootMenus = React.useMemo(() => {
+    return items.filter(item => item.depth === 0);
+  }, [items]);
+
+  // Get the current tree to display (selected root menu and its children)
+  const currentTree = React.useMemo(() => {
+    if (!selectedRootMenu) return [];
+    // Find the current version of the selected root menu from items
+    const currentRoot = items.find(item => item.id === selectedRootMenu.id);
+    return currentRoot ? [currentRoot] : [];
+  }, [selectedRootMenu, items]);
+
+  const handleToggleNode = (nodeId: string) => {
+    dispatch(toggleNode(nodeId));
+  };
+
+  const handleToggleAllNodes = (expand: boolean) => {
+    dispatch(toggleAllNodes(expand));
+  };
+
+  const handleAddItem = (parentId: string) => {
+    const name = prompt("Enter menu item name:");
+    if (name) {
+      addNewMenuItem(parentId, name);
+    }
+  };
+
+  const findLastChildInNextLayer = (node: MenuItem): string => {
+    // If the node has no children, use this node's ID as parent
+    if (!node.children || node.children.length === 0) {
+      return node.id;
+    }
+
+    // Find the last child that has the next depth level
+    const nextDepthChildren = node.children.filter(
+      child => child.depth === node.depth + 1
+    );
+
+    if (nextDepthChildren.length === 0) {
+      return node.id;
+    }
+
+    // Get the last child in the next layer
+    const lastChild = nextDepthChildren[nextDepthChildren.length - 1];
+    return lastChild.id;
+  };
+
+  const findParentName = (parentId: string | undefined): string => {
+    if (!parentId) return "Root";
+    
+    const findInTree = (nodes: MenuItem[]): string => {
+      for (const node of nodes) {
+        if (node.id === parentId) {
+          return node.name;
         }
         if (node.children) {
-          return { ...node, children: toggleNodeRecursive(node.children) }
+          const found = findInTree(node.children);
+          if (found) return found;
         }
-        return node
-      })
-    }
-    setTree(toggleNodeRecursive(tree))
-  }
+      }
+      return "Root";
+    };
 
-  const toggleAllNodes = (expand: boolean) => {
-    const toggleAllRecursive = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map((node) => {
-        if (node.children) {
-          return {
-            ...node,
-            isExpanded: expand,
-            children: toggleAllRecursive(node.children),
-          }
-        }
-        return node
-      })
-    }
-    setTree(toggleAllRecursive(tree))
-    setExpandAll(expand)
-  }
+    return findInTree(items);
+  };
 
-  const renderTree = (nodes: TreeNode[]) => {
+  const renderTree = (nodes: MenuItem[]) => {
     return nodes.map((node) => (
       <div key={node.id} className="ml-4 relative">
         <div className="flex items-center gap-1 py-1">
           {node.children && node.children.length > 0 ? (
-            <button onClick={() => toggleNode(node.id)} className="p-0.5 hover:bg-gray-100 rounded">
+            <button 
+              onClick={() => handleToggleNode(node.id)} 
+              className="p-0.5 hover:bg-gray-100 rounded"
+            >
               {node.isExpanded ? (
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               ) : (
@@ -181,10 +118,31 @@ export default function SystemManagement() {
             <div className="w-5" />
           )}
           <div className="relative">
-            {node.id !== "1" && <div className="absolute -left-4 top-1/2 w-3 h-px bg-gray-200" />}
+            {node.depth !== 0 && <div className="absolute -left-4 top-1/2 w-3 h-px bg-gray-200" />}
           </div>
-          <span className="text-sm text-gray-700">{node.label}</span>
-          {node.label === "System Code" && <Plus className="h-4 w-4 text-[#253BFF] ml-1" />}
+          <span 
+            className="text-sm text-gray-700 cursor-pointer"
+            onClick={() => setSelectedMenu(node)}
+          >
+            {node.name}
+          </span>
+          {/* Only show add button if this is not a root menu item */}
+          {node.depth > 0 && (
+            <button
+              onClick={() => {
+                const targetParentId = findLastChildInNextLayer(node);
+                handleAddItem(targetParentId);
+              }}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <Image 
+                src="/AddIcon.svg" 
+                alt="Add" 
+                width={26} 
+                height={26}
+              />
+            </button>
+          )}
         </div>
         {node.isExpanded && node.children && (
           <div className="relative">
@@ -193,13 +151,20 @@ export default function SystemManagement() {
           </div>
         )}
       </div>
-    ))
+    ));
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (
     <div className="flex h-screen bg-white">
       <Sidebar />
-      {/* Main Content */}
       <div className="overflow-hidden h-full">
         <div className="p-8">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -212,46 +177,94 @@ export default function SystemManagement() {
             <h1 className="text-2xl font-semibold">Menus</h1>
           </div>
 
-          {/* Updated layout: Flex container for tree and form */}
           <div className="flex gap-[220px]">
-            {/* Left side: Tree view */}
             <div className="w-[400px]">
               <div className="mb-6">
                 <Label htmlFor="menu" className="text-gray-500">
                   Menu
                 </Label>
-                <Select defaultValue="system-management">
+                <Select
+                  onValueChange={(value) => {
+                    const menu = items.find((item) => item.id === value);
+                    if (menu) {
+                      setSelectedRootMenu(menu);
+                      setSelectedMenu(null); // Clear selected menu when changing root menu
+                    }
+                  }}
+                  value={selectedRootMenu?.id}
+                >
                   <SelectTrigger className="w-[349px] text-gray-900 h-[52px] bg-[#F9FAFB] border-0 py-4 px-6 text-lg font-normal rounded-[16px]">
                     <SelectValue placeholder="Select menu" />
                   </SelectTrigger>
-                  <SelectContent className="w-[349px] h-[52px] rounded-[16px]">
-                    <SelectItem value="system-management">system management</SelectItem>
+                  <SelectContent className="w-[349px] max-h-[300px] rounded-[16px] overflow-auto">
+                    {rootMenus.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex gap-2 mb-4">
-                <Button variant="default" onClick={() => toggleAllNodes(true)} className="bg-[#101828] hover:bg-[#1f2937]">
+                <Button
+                  variant="default"
+                  onClick={() => handleToggleAllNodes(true)}
+                  className="bg-[#101828] hover:bg-[#1f2937]"
+                >
                   Expand All
                 </Button>
-                <Button variant="outline" onClick={() => toggleAllNodes(false)} className="text-gray-700 border-gray-300">
+                <Button
+                  variant="outline"
+                  onClick={() => handleToggleAllNodes(false)}
+                  className="text-gray-700 border-gray-300"
+                >
                   Collapse All
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    const name = prompt("Enter new menu name:");
+                    if (name) {
+                      createNewMenu(name);
+                    }
+                  }}
+                  className="bg-[#253BFF] hover:bg-[#1a2db3]"
+                >
+                  New Menu
                 </Button>
               </div>
 
               <div className="rounded p-2 w-fit">
-                {renderTree(tree)}
+                {currentTree.length > 0 ? renderTree(currentTree) : (
+                  <div className="text-gray-500">Select a menu to view its structure</div>
+                )}
               </div>
             </div>
 
-            {/* Right side: Menu form */}
             <div className="w-[400px]">
-              <MenuForm />
+              <MenuForm
+                selectedMenu={selectedMenu}
+                parentName={selectedMenu ? findParentName(selectedMenu.parentId) : undefined}
+                onUpdate={(name) => {
+                  if (selectedMenu) {
+                    updateItem(selectedMenu.id, name);
+                  }
+                }}
+                onDelete={() => {
+                  if (selectedMenu) {
+                    if (window.confirm("Are you sure you want to delete this menu item?")) {
+                      deleteItem(selectedMenu.id);
+                      setSelectedMenu(null);
+                    }
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
