@@ -12,10 +12,11 @@ import { MenuItem } from "@/lib/store/menuSlice"
 import MenuIcon from "@/public/MenuIcon.svg"
 import FolderIcon from "@/public/Folder.svg"
 import UnselectedFolderIcon from "@/public/UnselectedFolder.svg"
+import SubmenuIcon from "@/public/submenu.svg"
 
 export interface SidebarItemControl {
   text: string
-  icon: React.ReactElement
+  icon: React.ReactElement | string
   isMainMenu?: boolean
   parentName?: string
 }
@@ -36,7 +37,7 @@ function convertMenuItemsToSidebarControls(menuItems: MenuItem[]): SidebarItemCo
       item.children.forEach(child => {
         result.push({
           text: child.name,
-          icon: <Grid />,
+          icon: SubmenuIcon,
           parentName: item.name
         });
         
@@ -45,7 +46,7 @@ function convertMenuItemsToSidebarControls(menuItems: MenuItem[]): SidebarItemCo
           child.children.forEach(grandChild => {
             result.push({
               text: grandChild.name,
-              icon: <Grid />,
+              icon: SubmenuIcon,
               parentName: item.name
             });
           });
@@ -101,9 +102,13 @@ function NavItem({
             height={20} 
           />
         ) : (
-          React.cloneElement(item.icon, {
-            className: isActive ? "text-black" : isInActiveGroup ? "text-white" : "text-[#667085]",
-          })
+          <Image 
+            src={item.icon as string}
+            alt="Submenu"
+            width={24}
+            height={24}
+            className={isActive ? "text-black" : isInActiveGroup ? "text-white" : "text-[#667085]"}
+          />
         )}
       </span>
       <span>
