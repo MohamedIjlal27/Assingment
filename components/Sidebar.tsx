@@ -3,42 +3,57 @@
 import React from 'react'
 import { useState } from "react"
 import Image from "next/image"
-import { LayoutGrid, Grid, Settings, Users, Menu } from "lucide-react"
+import { Grid } from "lucide-react"
+import { useSelector } from "react-redux"
+import { RootState } from "@/lib/store"
+import { MenuItem } from "@/lib/store/menuSlice"
 
 // Import icons
-import FolderIcon from "@/public/Folder.svg"
-import UnselectedFolderIcon from "@/public/UnselectedFolder.svg"
 import MenuIcon from "@/public/MenuIcon.svg"
+import FolderIcon from "@/public/Folder.svg"
 
 export interface SidebarItemControl {
   text: string
   icon: React.ReactElement
-  link?: string
-  external?: boolean
-  subItems?: SidebarItemControl[]
+  isMainMenu?: boolean
+  parentName?: string
 }
 
-export function useSidebarItemControls(): SidebarItemControl[] {
-  return [
-    {
-      text: "Systems",
+function convertMenuItemsToSidebarControls(menuItems: MenuItem[]): SidebarItemControl[] {
+  const result: SidebarItemControl[] = [];
+  
+  menuItems.forEach(item => {
+    // Add the main menu item
+    result.push({
+      text: item.name,
       icon: <Image src={FolderIcon} alt="Folder" width={20} height={20} />,
-      subItems: [
-        { text: "System Code", icon: <Grid /> },
-        { text: "Properties", icon: <Settings /> },
-        { text: "Menus", icon: <Grid /> },
-        { text: "API List", icon: <Grid /> },
-      ],
-    },
-    {
-      text: "Users & Group",
-      icon: <Image src={FolderIcon} alt="Folder" width={20} height={20} />,
-    },
-    {
-      text: "Competition",
-      icon: <Image src={FolderIcon} alt="Folder" width={20} height={20} />,
-    },
-  ]
+      isMainMenu: true
+    });
+    
+    // Add children only if the main menu is expanded
+    if (item.children) {
+      item.children.forEach(child => {
+        result.push({
+          text: child.name,
+          icon: <Grid />,
+          parentName: item.name
+        });
+        
+        // Add grandchildren
+        if (child.children) {
+          child.children.forEach(grandChild => {
+            result.push({
+              text: grandChild.name,
+              icon: <Grid />,
+              parentName: item.name
+            });
+          });
+        }
+      });
+    }
+  });
+  
+  return result;
 }
 
 function NavItem({
@@ -56,32 +71,51 @@ function NavItem({
     <button
       className={`
         flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm
-        ${isSubMenuActive ? "bg-[#9ff443] text-black" : "text-[#667085] hover:bg-gray-800"}
+        ${isActive || isSubMenuActive ? "bg-[#1D2939] text-white" : "text-[#667085]"}
+        hover:bg-[#1D2939] hover:text-white
+        transition-colors duration-200
       `}
       onClick={onClick}
     >
       <span className="flex items-center">
-        {React.cloneElement(item.icon, {
-          className: isActive ? "text-white" : "text-[#667085]",
-        })}
+        {item.isMainMenu ? (
+          item.icon
+        ) : (
+          React.cloneElement(item.icon, {
+            className: isActive || isSubMenuActive ? "text-white" : "text-[#667085]",
+          })
+        )}
       </span>
-      <span className={isActive ? "text-white" : "opacity-90"}>{item.text}</span>
+      <span className={isActive || isSubMenuActive ? "text-white" : "opacity-90"}>
+        {item.text}
+      </span>
     </button>
   )
 }
 
 export default function Sidebar() {
-  const [activeMenu, setActiveMenu] = useState<string | null>(null)
-  const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null)
-  const sidebarItems = useSidebarItemControls()
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<string | null>(null);
+  
+  // Get menu items from Redux store
+  const menuItems = useSelector((state: RootState) => state.menu.items);
 
-  const handleMenuClick = (itemText: string, subItems?: SidebarItemControl[]) => {
-    setActiveMenu(activeMenu === itemText ? null : itemText)
-  }
+  const handleItemClick = (item: SidebarItemControl) => {
+    if (item.isMainMenu) {
+      // Toggle expanded state for main menu
+      setExpandedMenu(expandedMenu === item.text ? null : item.text);
+      setActiveItem(item.text);
+    } else {
+      // Handle submenu click
+      setActiveItem(item.text);
+    }
+  };
 
-  const handleSubMenuClick = (subItemText: string) => {
-    setActiveSubMenu(activeSubMenu === subItemText ? null : subItemText);
-  }
+  // Filter items based on expanded state
+  const visibleItems = convertMenuItemsToSidebarControls(menuItems).filter(item => 
+    item.isMainMenu || // Always show main menus
+    (item.parentName && item.parentName === expandedMenu) // Show submenu items only if parent is expanded
+  );
 
   return (
     <div className="p-4">
@@ -93,28 +127,14 @@ export default function Sidebar() {
           </button>
         </div>
         <nav className="space-y-1">
-          {sidebarItems.map((item) => (
+          {visibleItems.map((item) => (
             <div key={item.text}>
               <NavItem
-                item={{
-                  ...item,
-                  icon: activeMenu === item.text ? item.icon : <Image src={UnselectedFolderIcon} alt="Unselected Folder" width={20} height={20} />
-                }}
-                isActive={activeMenu === item.text}
-                onClick={() => handleMenuClick(item.text, item.subItems)}
+                item={item}
+                isActive={activeItem === item.text}
+                isSubMenuActive={activeItem === item.text && !item.isMainMenu}
+                onClick={() => handleItemClick(item)}
               />
-              {activeMenu === item.text && item.subItems && (
-                <div className="space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <NavItem
-                      key={subItem.text}
-                      item={subItem}
-                      isSubMenuActive={activeSubMenu === subItem.text}
-                      onClick={() => handleSubMenuClick(subItem.text)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </nav>

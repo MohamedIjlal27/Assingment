@@ -12,6 +12,7 @@ import { MenuItem } from "@/lib/store/menuSlice"
 import { useDispatch } from "react-redux"
 import { toggleNode, toggleAllNodes } from "@/lib/store/menuSlice"
 import Image from "next/image"
+import { AddMenuModal } from "@/components/menus/add-menu-modal"
 
 export default function SystemManagement() {
   const dispatch = useDispatch();
@@ -27,6 +28,9 @@ export default function SystemManagement() {
   } = useMenu();
   const [selectedMenu, setSelectedMenu] = React.useState<MenuItem | null>(null);
   const [selectedRootMenu, setSelectedRootMenu] = React.useState<MenuItem | null>(null);
+  const [isNewMenuModalOpen, setIsNewMenuModalOpen] = React.useState(false);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = React.useState(false);
+  const [selectedParentId, setSelectedParentId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     loadMenus();
@@ -54,10 +58,8 @@ export default function SystemManagement() {
   };
 
   const handleAddItem = (parentId: string) => {
-    const name = prompt("Enter menu item name:");
-    if (name) {
-      addNewMenuItem(parentId, name);
-    }
+    setSelectedParentId(parentId);
+    setIsAddItemModalOpen(true);
   };
 
   const findLastChildInNextLayer = (node: MenuItem): string => {
@@ -126,8 +128,8 @@ export default function SystemManagement() {
           >
             {node.name}
           </span>
-          {/* Only show add button if this is not a root menu item */}
-          {node.depth > 0 && (
+          {/* Show add button for root items with no children or non-root items */}
+          {(node.depth === 0 && (!node.children || node.children.length === 0)) || node.depth > 0 ? (
             <button
               onClick={() => {
                 const targetParentId = findLastChildInNextLayer(node);
@@ -142,7 +144,7 @@ export default function SystemManagement() {
                 height={26}
               />
             </button>
-          )}
+          ) : null}
         </div>
         {node.isExpanded && node.children && (
           <div className="relative">
@@ -223,12 +225,7 @@ export default function SystemManagement() {
                 </Button>
                 <Button
                   variant="default"
-                  onClick={() => {
-                    const name = prompt("Enter new menu name:");
-                    if (name) {
-                      createNewMenu(name);
-                    }
-                  }}
+                  onClick={() => setIsNewMenuModalOpen(true)}
                   className="bg-[#253BFF] hover:bg-[#1a2db3]"
                 >
                   New Menu
@@ -264,6 +261,32 @@ export default function SystemManagement() {
           </div>
         </div>
       </div>
+
+      <AddMenuModal
+        isOpen={isNewMenuModalOpen}
+        onClose={() => setIsNewMenuModalOpen(false)}
+        onSubmit={(name) => createNewMenu(name)}
+        title="Create New Menu"
+        description="Enter a name for the new root menu."
+      />
+
+      <AddMenuModal
+        isOpen={isAddItemModalOpen}
+        onClose={() => {
+          setIsAddItemModalOpen(false);
+          setSelectedParentId(null);
+        }}
+        onSubmit={(name) => {
+          if (selectedParentId) {
+            const targetParentId = findLastChildInNextLayer(
+              items.find(item => item.id === selectedParentId)!
+            );
+            addNewMenuItem(targetParentId, name);
+          }
+        }}
+        title="Add Menu Item"
+        description="Enter a name for the new menu item."
+      />
     </div>
   );
 }
