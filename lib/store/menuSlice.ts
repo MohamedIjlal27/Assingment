@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/menus';
+import { menuApi } from '@/lib/api/menu';
 
 export interface MenuItem {
   id: string;
@@ -15,35 +13,35 @@ export interface MenuItem {
 }
 
 export const fetchMenus = createAsyncThunk('menu/fetchMenus', async () => {
-  const response = await axios.get(API_URL);
-  return response.data.map((item: MenuItem) => ({ ...item, isExpanded: false }));
+  const response = await menuApi.getAllMenus();
+  return response.map((item: MenuItem) => ({ ...item, isExpanded: false }));
 });
 
 export const createMenu = createAsyncThunk('menu/createMenu', async (name: string) => {
-  const response = await axios.post(API_URL, { name });
-  return { ...response.data, isExpanded: false };
+  const response = await menuApi.createMenu({ name });
+  return { ...response, isExpanded: false };
 });
 
 export const addMenuItem = createAsyncThunk(
   'menu/addMenuItem',
   async ({ parentId, name }: { parentId: string; name: string }) => {
-    const response = await axios.post(`${API_URL}/${parentId}/items`, { name });
-    return { ...response.data, isExpanded: false };
+    const response = await menuApi.addMenuItem(parentId, { name });
+    return { ...response, isExpanded: false };
   }
 );
 
 export const updateMenuItem = createAsyncThunk(
   'menu/updateMenuItem',
   async ({ id, name }: { id: string; name: string }) => {
-    const response = await axios.put(`${API_URL}/items/${id}`, { name });
-    return response.data;
+    const response = await menuApi.updateMenuItem(id, { name });
+    return response;
   }
 );
 
 export const deleteMenuItem = createAsyncThunk(
   'menu/deleteMenuItem',
   async (id: string) => {
-    await axios.delete(`${API_URL}/items/${id}`);
+    await menuApi.deleteMenuItem(id);
     return id;
   }
 );
