@@ -4,12 +4,20 @@ import { useDispatch, useSelector } from "react-redux"
 import { ChevronDown, ChevronRight, Plus } from "lucide-react"
 import { MenuItem, toggleNode } from "@/lib/store/menuSlice"
 import { RootState } from "@/lib/store"
+import { TreeNode as ImportedTreeNode } from '@/types';
 
-interface TreeViewProps {
-  onAddClick?: (parentId: string) => void;
+interface TreeNode {
+  id: string;
+  name: string;
+  children?: TreeNode[];
 }
 
-export function TreeView({ onAddClick }: TreeViewProps) {
+interface TreeViewProps {
+  initialData: ImportedTreeNode[];
+  onAddClick?: (nodeId: string) => void;
+}
+
+export function TreeView({ initialData, onAddClick }: TreeViewProps) {
   const dispatch = useDispatch();
   const items = useSelector((state: RootState) => state.menu.items);
 
