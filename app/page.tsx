@@ -62,26 +62,6 @@ export default function SystemManagement() {
     setIsAddItemModalOpen(true);
   };
 
-  const findLastChildInNextLayer = (node: MenuItem): string => {
-    // If the node has no children, use this node's ID as parent
-    if (!node.children || node.children.length === 0) {
-      return node.id;
-    }
-
-    // Find the last child that has the next depth level
-    const nextDepthChildren = node.children.filter(
-      child => child.depth === node.depth + 1
-    );
-
-    if (nextDepthChildren.length === 0) {
-      return node.id;
-    }
-
-    // Get the last child in the next layer
-    const lastChild = nextDepthChildren[nextDepthChildren.length - 1];
-    return lastChild.id;
-  };
-
   const findParentName = (parentId: string | undefined): string => {
     if (!parentId) return "Root";
     
@@ -128,13 +108,24 @@ export default function SystemManagement() {
           >
             {node.name}
           </span>
-          {/* Show add button for root items with no children or non-root items */}
-          {(node.depth === 0 && (!node.children || node.children.length === 0)) || node.depth > 0 ? (
+
+          {node.depth === 0 ? (
+            !node.children || node.children.length === 0 ? (
+              <button
+                onClick={() => handleAddItem(node.id)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <Image 
+                  src="/AddIcon.svg" 
+                  alt="Add" 
+                  width={26} 
+                  height={26}
+                />
+              </button>
+            ) : null
+          ) : (
             <button
-              onClick={() => {
-                const targetParentId = findLastChildInNextLayer(node);
-                handleAddItem(targetParentId);
-              }}
+              onClick={() => handleAddItem(node.id)}
               className="p-1 hover:bg-gray-100 rounded"
             >
               <Image 
@@ -144,7 +135,7 @@ export default function SystemManagement() {
                 height={26}
               />
             </button>
-          ) : null}
+          )}
         </div>
         {node.isExpanded && node.children && (
           <div className="relative">
@@ -278,10 +269,7 @@ export default function SystemManagement() {
         }}
         onSubmit={(name) => {
           if (selectedParentId) {
-            const targetParentId = findLastChildInNextLayer(
-              items.find(item => item.id === selectedParentId)!
-            );
-            addNewMenuItem(targetParentId, name);
+            addNewMenuItem(selectedParentId, name);
           }
         }}
         title="Add Menu Item"
