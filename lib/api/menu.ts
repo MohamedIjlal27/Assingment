@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { MenuItem } from '@/lib/store/menuSlice';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://menu-backend-git-main-mohamed-ijlals-projects.vercel.app';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -12,10 +12,14 @@ const api = axios.create({
 
 export interface CreateMenuDTO {
   name: string;
+  parentId?: string;
+  depth: number;
 }
 
 export interface UpdateMenuDTO {
-  name: string;
+  name?: string;
+  parentId?: string;
+  depth?: number;
 }
 
 export const menuApi = {
@@ -25,7 +29,7 @@ export const menuApi = {
     return response.data;
   },
 
-  // Create a root menu
+  // Create a menu item (root item if no parentId)
   createMenu: async (data: CreateMenuDTO): Promise<MenuItem> => {
     const response = await api.post('/menus', data);
     return response.data;
@@ -33,18 +37,34 @@ export const menuApi = {
 
   // Add a submenu item
   addMenuItem: async (parentId: string, data: CreateMenuDTO): Promise<MenuItem> => {
-    const response = await api.post(`/menus/${parentId}/items`, data);
+    // Ensure the parentId is included in the data
+    const menuItemData = {
+      ...data,
+      parentId,
+    };
+    const response = await api.post('/menus', menuItemData);
     return response.data;
   },
 
   // Update a menu item
   updateMenuItem: async (id: string, data: UpdateMenuDTO): Promise<MenuItem> => {
-    const response = await api.put(`/menus/items/${id}`, data);
+    const response = await api.put(`/menus/${id}`, data);
     return response.data;
   },
 
   // Delete a menu item
   deleteMenuItem: async (id: string): Promise<void> => {
-    await api.delete(`/menus/items/${id}`);
+    await api.delete(`/menus/${id}`);
+  },
+
+  // Get a specific menu item with its children
+  getMenuItem: async (id: string): Promise<MenuItem> => {
+    const response = await api.get(`/menus/${id}`);
+    return response.data;
+  },
+
+  // Save the current state of the menu
+  saveMenu: async (): Promise<void> => {
+    await api.post('/menus/save');
   },
 }; 
