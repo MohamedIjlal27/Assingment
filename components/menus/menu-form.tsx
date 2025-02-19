@@ -4,15 +4,39 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MenuItem } from "@/lib/store/menuSlice"
+import { useSelector } from "react-redux"
+import { RootState } from "@/lib/store"
 
 interface MenuFormProps {
   selectedMenu: MenuItem | null;
-  parentName?: string;
   onUpdate: (name: string) => void;
   onDelete: () => void;
 }
 
-export function MenuForm({ selectedMenu, parentName, onUpdate, onDelete }: MenuFormProps) {
+export function MenuForm({ selectedMenu, onUpdate, onDelete }: MenuFormProps) {
+  const menus = useSelector((state: RootState) => state.menu.items);
+
+  const findParentMenu = (parentId: string, items: MenuItem[]): MenuItem | null => {
+    for (const item of items) {
+      if (item.id === parentId) {
+        return item;
+      }
+      if (item.children) {
+        const found = findParentMenu(parentId, item.children);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  };
+
+  const getParentName = (parentId: string | null | undefined): string => {
+    if (!parentId) return "Root";
+    const parent = findParentMenu(parentId, menus);
+    return parent ? parent.name : "Root";
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -30,8 +54,10 @@ export function MenuForm({ selectedMenu, parentName, onUpdate, onDelete }: MenuF
     );
   }
 
+  const parentName = getParentName(selectedMenu.parentId);
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-gray-50 rounded-2xl">
+    <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-gray-50 rounded-2xl" key={selectedMenu.id}>
       <div>
         <Label htmlFor="menuId">Menu ID</Label>
         <Input
@@ -59,7 +85,7 @@ export function MenuForm({ selectedMenu, parentName, onUpdate, onDelete }: MenuF
         <Input
           id="parentData"
           name="parentData"
-          value={parentName || "Root"}
+          value={parentName}
           disabled
           className="mt-2"
         />
@@ -70,6 +96,7 @@ export function MenuForm({ selectedMenu, parentName, onUpdate, onDelete }: MenuF
         <Input
           id="name"
           name="name"
+          key={`name-${selectedMenu.id}`}
           defaultValue={selectedMenu.name}
           className="mt-2"
         />
