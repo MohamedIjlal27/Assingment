@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { MenuItem } from '@/lib/store/menuSlice';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://menu-backend-git-main-mohamed-ijlals-projects.vercel.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: API_URL,
