@@ -233,7 +233,6 @@ export default function SystemManagement() {
             <div className="w-[400px]">
               <MenuForm
                 selectedMenu={selectedMenu}
-                parentName={selectedMenu ? findParentName(selectedMenu.parentId) : undefined}
                 onUpdate={(name) => {
                   if (selectedMenu) {
                     updateItem(selectedMenu.id, name);

@@ -103,7 +103,7 @@ export function MenuForm({ selectedMenu, onUpdate, onDelete }: MenuFormProps) {
       </div>
 
       <div className="flex gap-4">
-        <Button type="submit" className="flex-1">
+        <Button type="submit" className="bg-[#253BFF] hover:bg-[#1a2db3]">
           Save Changes
         </Button>
         <Button
